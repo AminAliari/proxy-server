@@ -1,1 +1,6 @@
 C:\Users\Amin\Documents\Visual Studio 2015\Projects\network-project\network-project\bin\Debug\network-project.exe.config
+C:\Users\Amin\Documents\Visual Studio 2015\Projects\network-project\network-project\bin\Debug\network-project.exe
+C:\Users\Amin\Documents\Visual Studio 2015\Projects\network-project\network-project\bin\Debug\network-project.pdb
+C:\Users\Amin\Documents\Visual Studio 2015\Projects\network-project\network-project\obj\Debug\network-project.csprojResolveAssemblyReference.cache
+C:\Users\Amin\Documents\Visual Studio 2015\Projects\network-project\network-project\obj\Debug\network-project.exe
+C:\Users\Amin\Documents\Visual Studio 2015\Projects\network-project\network-project\obj\Debug\network-project.pdb

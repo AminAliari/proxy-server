@@ -11,6 +11,10 @@ namespace network_project {
             return Console.ReadLine();
         }
 
+        public static char readKey() {
+            return Console.ReadKey(true).KeyChar;
+        }
+
         public static void print(Object o) {
             Console.WriteLine(o.ToString());
         }
