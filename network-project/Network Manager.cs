@@ -38,6 +38,9 @@ namespace network_project {
 
                 case '4':
                     tools.print("   exiting...");
+                    foreach (Connection c in connections) {
+                        c.isRun = false;
+                    }
                     break;
 
                 default:
@@ -68,15 +71,10 @@ namespace network_project {
                 string[] sourceInfo = info[1].Trim().Split(':');
 
                 try {
-                    connections.Add(new Connection(new ConnectionInfo(Int32.Parse(sourceInfo[2].Split('-')[0].Trim()), sourceInfo[1].Trim(), sourceInfo[0].Trim() == "udp" ? ConnectionType.udp : ConnectionType.tcp, info[2].Trim() == "udp" ? ConnectionType.udp : ConnectionType.tcp), connections.Count));
+                    connections.Add(new Connection(new ConnectionInfo(Int32.Parse(sourceInfo[2].Split('-')[0].Trim()), sourceInfo[1].Trim(), sourceInfo[0].Trim() == "udp" ? ConnectionType.udp : ConnectionType.tcp, info[2].Trim() == "udp" ? ConnectionType.udp : ConnectionType.tcp), tools.getTimestamp(DateTime.Now)));
 
                 } catch (Exception e) {
-
-                    if (e.Message.Contains("connection")) {
-                        tools.print("   " + e.Message);
-                    } else {
-                        tools.print("   wrong format"); return;
-                    }
+                    tools.print("   wrong format"); return;
                 }
             }
         }
@@ -87,7 +85,7 @@ namespace network_project {
                 foreach (Connection c in connections) {
                     tools.print("      " + c);
                 }
-            }else {
+            } else {
                 tools.print("   no connections");
             }
         }

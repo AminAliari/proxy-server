@@ -31,5 +31,9 @@ namespace network_project {
             Console.SetCursorPosition(0, currentLineCursor);
             print("");
         }
+
+        public static string getTimestamp(DateTime value) {
+            return value.ToString("yyyyMMddHHmmssffff");
+        }
     }
 }
