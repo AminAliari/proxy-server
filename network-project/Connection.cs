@@ -11,11 +11,12 @@ namespace network_project {
     class Connection {
         public bool isRun = true;
 
-        int serverPort = 80;
-        string id, serverAddress = "google.com";
-
+        int proxyPort = 7879, serverPort = 80;
+        string id, serverAddress = "forum.bazicenter.com";
+        bool isServerFirstTime = true, isServerConnected = false;
+        
         ConnectionInfo ci;
-        Thread clientThread, serverThread, udpThread, tcpThread;
+        Thread clientThread, serverThread;
         TcpClient clientTcp, serverTcp;
 
         public Connection(ConnectionInfo ci, string id) {
@@ -23,10 +24,7 @@ namespace network_project {
             this.id = id;
 
             clientThread = ci.sourceType == ConnectionType.udp ? new Thread(udpClientReceive) : new Thread(tcpClientReceive);
-            serverThread = ci.destType == ConnectionType.udp ? new Thread(udpServerReceive) : new Thread(tcpServerReceive);
-
             clientThread.Start();
-            serverThread.Start();
         }
 
         void udpClientReceive() {
@@ -40,10 +38,57 @@ namespace network_project {
                     byte[] bytes = listener.Receive(ref groupEP);
 
                     string message = Encoding.ASCII.GetString(bytes, 0, bytes.Length);
-                    Console.WriteLine("[udp client] received from {0} :\n {1}\n", groupEP.ToString(), message);
+                    Console.WriteLine("[udp client] connected from {0}", groupEP.ToString());
+
+                    if (isServerConnected == false && isServerFirstTime) {
+                        isServerFirstTime = false;
+                        serverThread = ci.destType == ConnectionType.udp ? new Thread(udpServerReceive) : new Thread(tcpServerReceive);
+                        serverThread.Start();
+                    }
+                    new Thread(() => sendTcp(bytes, DestinationType.server)).Start();
                 }
                 listener.Close();
 
+            } catch (Exception e) {
+                Console.WriteLine(e.ToString());
+            } finally {
+                listener.Close();
+            }
+        }
+
+        void tcpServerReceive() {
+            try {
+                serverTcp = new TcpClient(serverAddress, serverPort);
+                isServerConnected = true;
+
+                while (isRun) {
+                    NetworkStream ns = serverTcp.GetStream();
+                    byte[] bytes = new byte[1024];
+                    while (!ns.DataAvailable) { }
+                    int bytesRead = ns.Read(bytes, 0, bytes.Length);
+
+                    new Thread(() => sendUdp(IPAddress.Parse(ci.sourceAddress), bytes)).Start(); ;
+                    Console.WriteLine(Encoding.ASCII.GetString(bytes, 0, bytesRead));
+                }
+                serverTcp.Close();
+            } catch (Exception e) {
+                Console.WriteLine(e.ToString());
+            }
+        }
+
+        void udpServerReceive() {
+            UdpClient listener = new UdpClient(serverPort);
+            IPEndPoint groupEP = new IPEndPoint(Dns.GetHostAddresses(serverAddress)[0], serverPort);
+
+            try {
+                while (isRun) {
+                    Console.WriteLine("[tcp server] waiting");
+                    byte[] bytes = listener.Receive(ref groupEP);
+
+                    string message = Encoding.ASCII.GetString(bytes, 0, bytes.Length);
+                    Console.WriteLine("[tcp server] received from {0} :\n {1}\n", groupEP.ToString(), message);
+                }
+                listener.Close();
             } catch (Exception e) {
                 Console.WriteLine(e.ToString());
             } finally {
@@ -62,8 +107,6 @@ namespace network_project {
 
             tools.print("[tcp client] connection accepted.");
             try {
-
-
                 NetworkStream ns = clientTcp.GetStream();
                 while (isRun) {
                     byte[] bytes = new byte[1024];
@@ -78,70 +121,37 @@ namespace network_project {
             listener.Stop();
         }
 
-        void udpServerReceive() {
-            UdpClient listener = new UdpClient(serverPort);
-            IPEndPoint groupEP = new IPEndPoint(IPAddress.Any, serverPort);
+        void sendUdp(IPAddress address, byte[] data) {
 
-            try {
-                while (isRun) {
-                    Console.WriteLine("[tcp server] waiting");
-                    byte[] bytes = listener.Receive(ref groupEP);
-
-                    string message = Encoding.ASCII.GetString(bytes, 0, bytes.Length);
-                    Console.WriteLine("[tcp server] received from {0} :\n {1}\n", groupEP.ToString(), message);
-                }
-                listener.Close();
-            } catch (Exception e) {
-                Console.WriteLine(e.ToString());
-            } finally {
-                listener.Close();
-            }
-        }
-
-        void tcpServerReceive() {
-            try {
-                serverTcp = new TcpClient(serverAddress, serverPort);
-
-                NetworkStream ns = serverTcp.GetStream();
-                while (isRun) {
-                    byte[] bytes = new byte[1024];
-                    int bytesRead = ns.Read(bytes, 0, bytes.Length);
-                    Console.WriteLine(Encoding.ASCII.GetString(bytes, 0, bytesRead));
-                }
-                serverTcp.Close();
-            } catch (Exception e) {
-                Console.WriteLine(e.ToString());
-            }
-        }
-
-        void sendUdp(string data, int port) {
             Socket s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
-            IPAddress broadcast = IPAddress.Parse("192.168.1.255");
+            IPEndPoint ep = new IPEndPoint(address, proxyPort);
 
-            byte[] sendbuf = Encoding.ASCII.GetBytes($"{id}|{data}");
-            IPEndPoint ep = new IPEndPoint(broadcast, port);
+            s.SendTo(data, ep);
 
-            s.SendTo(sendbuf, ep);
-
-            Console.WriteLine($"[udp proxy] message sent to port {port}");
+            Console.WriteLine($"[udp proxy] message sent to {address.ToString()}:{proxyPort}");
         }
 
-        void sendTcp(string data, TcpClient dest) {
+        void sendTcp(byte[] data, DestinationType destType) {
+            while (!isServerConnected) {
+               
+            }
             try {
+                NetworkStream ns = destType == DestinationType.client ? clientTcp.GetStream() : serverTcp.GetStream();
+                ns.Write(data, 0, data.Length);
 
-                NetworkStream ns = dest.GetStream();
-
-                byte[] sendbuf = Encoding.ASCII.GetBytes($"{id}|{data}");
-                ns.Write(sendbuf, 0, sendbuf.Length);
-
-            } catch (Exception e) {
+        } catch (Exception e) {
                 Console.WriteLine(e.ToString());
             }
-        }
+}
 
         public override string ToString() {
             return $"id:[{id}] [{ci.ToString()}]";
         }
+    }
+
+    enum DestinationType {
+        client,
+        server
     }
 }
