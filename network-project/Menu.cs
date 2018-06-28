@@ -27,7 +27,7 @@ namespace network_project {
                     break;
 
                 case "3":
-
+                    tools.print("command format: {proxy –s sourceProtocol:sourceHost:sourcePort –d destProtocol}");
                     break;
 
                 case "4":
@@ -40,6 +40,14 @@ namespace network_project {
             }
 
             return readKey;
+        }
+
+        public void handleCommand() {
+
+        }
+
+        public void showConnections() {
+
         }
     }
 }
