@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace dns_client {
     class Program {
         static void Main(string[] args) {
-
+            string id = getTimestamp(DateTime.Now);
             ///// tcp client
             bool found = false;
             TcpClient serverTcp = new TcpClient();
@@ -27,7 +27,8 @@ namespace dns_client {
 
                 NetworkStream ns = serverTcp.GetStream();
                 Console.WriteLine("sending");
-                byte[] sendbuf = Encoding.ASCII.GetBytes("GET / HTTP/1.0\r\n\r\n");
+                string type = "", server = "", target = "";
+                byte[] sendbuf = Encoding.ASCII.GetBytes($"id:{id}|DNS|{type}|{server}|{target}");
                 ns.Write(sendbuf, 0, sendbuf.Length); // send
                 Console.WriteLine("sent");
 

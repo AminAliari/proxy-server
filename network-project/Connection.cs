@@ -12,9 +12,9 @@ namespace network_project {
         public bool isRun = true;
 
         int proxyPort = 7879, serverPort = 80;
-        string id, serverAddress = "forum.bazicenter.com";
+        string id, clientId = "-1", serverAddress = "google.com";
         bool isServerFirstTime = true, isServerConnected = false;
-        
+
         ConnectionInfo ci;
         Thread clientThread, serverThread;
         TcpClient clientTcp, serverTcp;
@@ -40,12 +40,36 @@ namespace network_project {
                     string message = Encoding.ASCII.GetString(bytes, 0, bytes.Length);
                     Console.WriteLine("[udp client] connected from {0}", groupEP.ToString());
 
-                    if (isServerConnected == false && isServerFirstTime) {
-                        isServerFirstTime = false;
-                        serverThread = ci.destType == ConnectionType.udp ? new Thread(udpServerReceive) : new Thread(tcpServerReceive);
-                        serverThread.Start();
+                    string[] info = message.Split('|');
+                   
+                    if (info.Length > 2) {
+                        string tempId = info[0].Split(':')[1];
+                        if (info[0].StartsWith("id")) {
+                            clientId = clientId == "-1" ? info[0].Split(':')[1] : clientId;
+                        }
+                        if (clientId != tempId) return;
+
+                        if (info[1] == "HTTP") {
+                            serverAddress = info[3];
+                            serverPort = 80;
+                            bytes = Encoding.ASCII.GetBytes($"GET / HTTP / {info[2]}\r\n\r\n");
+                        }
+                        if (ci.destType == ConnectionType.tcp) {
+                            if (isServerConnected == false && isServerFirstTime) {
+                                isServerFirstTime = false;
+                                serverThread = new Thread(tcpServerReceive);
+                                serverThread.Start();
+                            }
+                            new Thread(() => sendTcp(bytes, DestinationType.server)).Start();
+                        } else {
+                            if (isServerConnected == false && isServerFirstTime) {
+                                isServerFirstTime = false;
+                                serverThread = new Thread(udpServerReceive);
+                                serverThread.Start();
+                            }
+                            new Thread(() => sendUdp(IPAddress.Parse(serverAddress), bytes, DestinationType.server)).Start();
+                        }
                     }
-                    new Thread(() => sendTcp(bytes, DestinationType.server)).Start();
                 }
                 listener.Close();
 
@@ -67,7 +91,7 @@ namespace network_project {
                     while (!ns.DataAvailable) { }
                     int bytesRead = ns.Read(bytes, 0, bytes.Length);
 
-                    new Thread(() => sendUdp(IPAddress.Parse(ci.sourceAddress), bytes)).Start(); ;
+                    new Thread(() => sendUdp(IPAddress.Parse(ci.sourceAddress), bytes, DestinationType.client)).Start(); ;
                     Console.WriteLine(Encoding.ASCII.GetString(bytes, 0, bytesRead));
                 }
                 serverTcp.Close();
@@ -78,22 +102,21 @@ namespace network_project {
 
         void udpServerReceive() {
             UdpClient listener = new UdpClient(serverPort);
-            IPEndPoint groupEP = new IPEndPoint(Dns.GetHostAddresses(serverAddress)[0], serverPort);
+            isServerConnected = true;
+            IPEndPoint groupEP = new IPEndPoint(IPAddress.Any, serverPort);
 
-            try {
-                while (isRun) {
-                    Console.WriteLine("[tcp server] waiting");
+            while (isRun) {
+                try {
+
+                    Console.WriteLine("Waiting for server");
                     byte[] bytes = listener.Receive(ref groupEP);
-
-                    string message = Encoding.ASCII.GetString(bytes, 0, bytes.Length);
-                    Console.WriteLine("[tcp server] received from {0} :\n {1}\n", groupEP.ToString(), message);
+                    string message = Encoding.ASCII.GetString(bytes, 0, bytes.Length).ToLower().Trim();
+                    Console.WriteLine("Received broadcast from {0} :\n {1}\n", groupEP.ToString(), message);
+                } catch (Exception e) {
+                    Console.WriteLine(e.ToString());
                 }
-                listener.Close();
-            } catch (Exception e) {
-                Console.WriteLine(e.ToString());
-            } finally {
-                listener.Close();
             }
+            listener.Close();
         }
 
         void tcpClientReceive() {
@@ -121,7 +144,12 @@ namespace network_project {
             listener.Stop();
         }
 
-        void sendUdp(IPAddress address, byte[] data) {
+        void sendUdp(IPAddress address, byte[] data, DestinationType destType) {
+            if (destType == DestinationType.server) {
+                while (!isServerConnected) {
+
+                }
+            }
 
             Socket s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
@@ -133,17 +161,24 @@ namespace network_project {
         }
 
         void sendTcp(byte[] data, DestinationType destType) {
-            while (!isServerConnected) {
-               
+            NetworkStream ns;
+
+            if (destType == DestinationType.server) {
+                while (!isServerConnected) {
+
+                }
+                ns = serverTcp.GetStream();
+            } else {
+                ns = clientTcp.GetStream();
             }
+
             try {
-                NetworkStream ns = destType == DestinationType.client ? clientTcp.GetStream() : serverTcp.GetStream();
                 ns.Write(data, 0, data.Length);
 
-        } catch (Exception e) {
+            } catch (Exception e) {
                 Console.WriteLine(e.ToString());
             }
-}
+        }
 
         public override string ToString() {
             return $"id:[{id}] [{ci.ToString()}]";

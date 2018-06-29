@@ -11,6 +11,10 @@ namespace http_client {
     class Program {
         static void Main(string[] args) {
             string id = getTimestamp(DateTime.Now);
+            string version = "1.0";
+            int port = 7878, proxyPort = 7879;
+            
+            string address = "yahoo.com";
             Console.WriteLine("my id: " + id);
 
             /////// udp client
@@ -18,17 +22,17 @@ namespace http_client {
 
             IPAddress broadcast = IPAddress.Parse("192.168.1.160");
 
-            byte[] sendbuf = Encoding.ASCII.GetBytes("GET / HTTP/1.0\r\n\r\n");
-            IPEndPoint ep = new IPEndPoint(broadcast, 7878);
+            byte[] sendbuf = Encoding.ASCII.GetBytes($"id:{id}|HTTP|{version}|{address}");
+            IPEndPoint ep = new IPEndPoint(broadcast, port);
 
             s.SendTo(sendbuf, ep);
 
-            Console.WriteLine($"[udp proxy] message sent to port {7878}");
+            Console.WriteLine($"[udp proxy] message sent to port {port}");
 
             bool done = false;
 
             UdpClient listener = new UdpClient(7879);
-            IPEndPoint groupEP = new IPEndPoint(IPAddress.Any, 7879);
+            IPEndPoint groupEP = new IPEndPoint(IPAddress.Any, proxyPort);
 
             try {
                 while (!done) {
@@ -36,7 +40,7 @@ namespace http_client {
                     byte[] bytes = listener.Receive(ref groupEP);
                     string message = Encoding.ASCII.GetString(bytes, 0, bytes.Length).ToLower().Trim();
                     try {
-                        message = message.Remove(0, message.IndexOf("<html>"));
+                        message = message.Remove(0, message.IndexOf("<"));
                         File.WriteAllText(@"C:\Users\Amin\Desktop\response.html", message);
                   
                     } catch { }
