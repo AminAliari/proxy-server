@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace network_project {
 
     class NetworkManager {
+
+        public static int proxyPort = 7879;
 
         List<Connection> connections;
 
@@ -16,7 +15,7 @@ namespace network_project {
             tools.print("welcome to AminRises/AryaNemidoonest Proxy Manager!\n");
 
             do {
-                tools.print("\n1.enter command  2.active connections  3.help  4.exit\n");
+                tools.print("\n1.enter command  2.active connections 3.set proxy port 4.help  4.exit\n");
             } while (fetch() != '4');
         }
 
@@ -33,10 +32,13 @@ namespace network_project {
                     break;
 
                 case '3':
+                    getProxyPort();
+                    break;
+                case '4':
                     tools.print("   command example: {proxy –s=udp:127.0.0.1:80 –d=tcp}");
                     break;
 
-                case '4':
+                case '5':
                     tools.print("   exiting...");
                     foreach (Connection c in connections) {
                         c.isRun = false;
@@ -53,7 +55,7 @@ namespace network_project {
 
         public void handleCommand() {
 
-            tools.print("   = ", true);
+            tools.print("   command = ", true);
             string command = tools.read().ToLower().Trim();
 
             if (!command.StartsWith("proxy")) {
@@ -71,7 +73,7 @@ namespace network_project {
                 string[] sourceInfo = info[1].Trim().Split(':');
 
                 try {
-                    connections.Add(new Connection(new ConnectionInfo(Int32.Parse(sourceInfo[2].Split('-')[0].Trim()), sourceInfo[1].Trim(), sourceInfo[0].Trim() == "udp" ? ConnectionType.udp : ConnectionType.tcp, info[2].Trim() == "udp" ? ConnectionType.udp : ConnectionType.tcp), tools.getTimestamp(DateTime.Now)));
+                    connections.Add(new Connection(new ConnectionInfo(int.Parse(sourceInfo[2].Split('-')[0].Trim()), sourceInfo[1].Trim(), sourceInfo[0].Trim() == "udp" ? ConnectionType.udp : ConnectionType.tcp, info[2].Trim() == "udp" ? ConnectionType.udp : ConnectionType.tcp), tools.getTimestamp(DateTime.Now)));
 
                 } catch (Exception e) {
                     tools.print("   wrong format"); return;
@@ -87,6 +89,21 @@ namespace network_project {
                 }
             } else {
                 tools.print("   no connections");
+            }
+        }
+
+        public void getProxyPort() {
+            tools.print($"   port (default {proxyPort}) = ", true);
+            string input = tools.read().ToLower().Trim();
+
+            try {
+                int.TryParse(input, out proxyPort);
+                if (proxyPort < 1025 || proxyPort > 65535) {
+                    proxyPort = 7879;
+                    throw new Exception();
+                }
+            } catch {
+                tools.print("   wrong entry");
             }
         }
     }

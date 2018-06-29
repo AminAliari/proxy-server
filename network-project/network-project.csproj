@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="Connection.cs" />
     <Compile Include="ConnectionInfo.cs" />
+    <Compile Include="HttpRequestCache.cs" />
     <Compile Include="Network Manager.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

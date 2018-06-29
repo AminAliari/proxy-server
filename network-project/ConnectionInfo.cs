@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace network_project {
+﻿namespace network_project {
     class ConnectionInfo {
 
         public int sourcePort;
@@ -29,5 +22,10 @@ namespace network_project {
     enum ConnectionType {
         udp,
         tcp
+    }
+
+    enum DestinationType {
+        client,
+        server
     }
 }
