@@ -34,6 +34,7 @@ namespace network_project {
                 case '3':
                     getProxyPort();
                     break;
+
                 case '4':
                     tools.print("   command example: {proxy –s=udp:127.0.0.1:80 –d=tcp}");
                     break;
@@ -85,7 +86,7 @@ namespace network_project {
             if (connections.Count > 0) {
                 tools.print("   connections:");
                 foreach (Connection c in connections) {
-                    tools.print("      " + c);
+                    tools.print($"      {c}");
                 }
             } else {
                 tools.print("   no connections");

@@ -10,12 +10,11 @@ namespace network_project {
         public bool isRun = true;
 
         int serverPort = 80;
-        string id, clientId = "-1", serverAddress = "google.com";
+        string id, clientId = "-1", oldHostname, hostname, serverAddress = "google.com";
         bool isServerFirstTime = true, isServerConnected = false;
 
         ConnectionInfo ci;
         List<HttpRequestCache> cache;
-        Thread clientThread, serverThread;
         TcpClient clientTcp, serverTcp;
 
         public Connection(ConnectionInfo ci, string id) {
@@ -23,8 +22,11 @@ namespace network_project {
             this.id = id;
 
             cache = new List<HttpRequestCache>();
-            clientThread = ci.sourceType == ConnectionType.udp ? new Thread(udpClientReceive) : new Thread(tcpClientReceive);
-            clientThread.Start();
+            if (ci.sourceType == ConnectionType.udp) {
+                new Thread(udpClientReceive).Start();
+            } else {
+                new Thread(tcpClientReceive).Start();
+            }
         }
 
         void udpClientReceive() {
@@ -37,7 +39,7 @@ namespace network_project {
                     tools.print("[udp client] waiting for a client to connect");
                     byte[] bytes = listener.Receive(ref groupEP);
 
-                    string message = Encoding.ASCII.GetString(bytes, 0, bytes.Length);
+                    string message = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
                     tools.print($"[udp client] client connected from {groupEP.ToString()}");
 
                     string[] info = message.Split('|');
@@ -54,35 +56,34 @@ namespace network_project {
                             foreach (HttpRequestCache c in cache) {
                                 if (c.address == info[3]) {
                                     if (ci.sourceType == ConnectionType.udp) {
-                                        new Thread(() => sendUdp(IPAddress.Parse(ci.sourceAddress), c.response, DestinationType.client)).Start();
+                                        sendUdp(IPAddress.Parse(ci.sourceAddress), c.response, DestinationType.client);
                                     } else {
-                                        new Thread(() => sendTcp(c.response, DestinationType.client)).Start();
+                                        sendTcp(c.response, DestinationType.client);
                                     }
                                     isCache = true;
                                     break;
                                 }
                             }
                             if (isCache) return;
-                            serverAddress = info[3];
+                            serverAddress = info[2];
                             serverPort = 80;
-                            cache.Add(new HttpRequestCache(serverAddress));
-                            bytes = Encoding.ASCII.GetBytes($"GET / HTTP / {info[2]}\r\n\r\n");
+                            bytes = Encoding.UTF8.GetBytes(info[3]);
+                            cache.Add(new HttpRequestCache(serverAddress, info[3]));
+
                         }
 
                         if (ci.destType == ConnectionType.tcp) {
                             if (isServerConnected == false && isServerFirstTime) {
                                 isServerFirstTime = false;
-                                serverThread = new Thread(tcpServerReceive);
-                                serverThread.Start();
+                                new Thread(tcpServerReceive).Start();
                             }
-                            new Thread(() => sendTcp(bytes, DestinationType.server)).Start();
+                            sendTcp(bytes, DestinationType.server);
                         } else {
                             if (isServerConnected == false && isServerFirstTime) {
                                 isServerFirstTime = false;
-                                serverThread = new Thread(udpServerReceive);
-                                serverThread.Start();
+                                new Thread(udpServerReceive).Start();
                             }
-                            new Thread(() => sendUdp(IPAddress.Parse(serverAddress), bytes, DestinationType.server)).Start();
+                            sendUdp(IPAddress.Parse(serverAddress), bytes, DestinationType.server);
                         }
                     }
                 }
@@ -110,18 +111,66 @@ namespace network_project {
                     byte[] bytes = new byte[1024];
                     while (!ns.DataAvailable) { }
                     int bytesRead = ns.Read(bytes, 0, bytes.Length);
+                    string message = Encoding.UTF8.GetString(bytes, 0, bytesRead);
 
                     if (serverPort == 80) {
-                        cache[cache.Count - 1].response = bytes;
+                        HttpRequestCache lastCache = cache[cache.Count - 1];
+                        lastCache.response = bytes;
+
+                        string[] lines = message.Split('\n');
+                        if (lines[0].Contains("Moved") || lines[0].Contains("302 Found")) { // handling 301 and 302 status code
+
+                            foreach (string l in lines) {
+                                if (l.StartsWith("Location")) {
+
+                                    Uri uri = new Uri(l.Remove(l.IndexOf("Location: "), 10).Trim());
+
+                                    oldHostname = hostname;
+                                    hostname = uri.AbsolutePath;
+
+                                    string newData;
+
+                                    if (string.IsNullOrEmpty(oldHostname)) {
+                                        newData = lastCache.data.Insert(lastCache.data.IndexOf('/'), hostname);
+                                    } else {
+                                        newData = lastCache.data.Replace($"{oldHostname}", $"{hostname}");
+                                    }
+
+                                    bytes = Encoding.UTF8.GetBytes(newData);
+
+                                    serverTcp.Close();
+                                    isServerConnected = false;
+
+                                    new Thread(tcpServerReceive).Start();
+
+                                    if (ci.destType == ConnectionType.tcp) {
+                                        sendTcp(bytes, DestinationType.server);
+                                    } else {
+                                        sendUdp(IPAddress.Parse(serverAddress), bytes, DestinationType.server);
+                                    }
+                                    break;
+                                }
+                            }
+
+                            return;
+                        } else if (lines[0].Contains("Not Found")) { // handling 301 and 404 status code
+                            bytes = Encoding.UTF8.GetBytes("request not found (404)");
+
+                            if (ci.sourceType == ConnectionType.udp) {
+                                sendUdp(IPAddress.Parse(ci.sourceAddress), bytes, DestinationType.client);
+                            } else {
+                                sendTcp(bytes, DestinationType.client);
+                            }
+                        }
                     }
 
                     if (ci.sourceType == ConnectionType.udp) {
-                        new Thread(() => sendUdp(IPAddress.Parse(ci.sourceAddress), bytes, DestinationType.client)).Start();
+                        sendUdp(IPAddress.Parse(ci.sourceAddress), bytes, DestinationType.client);
                     } else {
-                        new Thread(() => sendTcp(bytes, DestinationType.client)).Start();
+                        sendTcp(bytes, DestinationType.client);
                     }
 
-                    tools.print($"[tcp server] received message from server \n {Encoding.ASCII.GetString(bytes, 0, bytesRead)}");
+                    tools.print($"[tcp server] message received from server \n {message}");
                 }
                 serverTcp.Close();
             } catch (Exception e) {
@@ -144,7 +193,7 @@ namespace network_project {
                 while (isRun) {
                     byte[] bytes = new byte[1024];
                     int bytesRead = ns.Read(bytes, 0, bytes.Length);
-                    string message = Encoding.ASCII.GetString(bytes, 0, bytesRead);
+                    string message = Encoding.UTF8.GetString(bytes, 0, bytesRead);
                     string[] info = message.Split('|');
 
                     if (info.Length > 2) {
@@ -155,25 +204,23 @@ namespace network_project {
                         if (clientId != tempId) { clientTcp = null; return; }
 
                         if (info[1] == "DNS") {
-                            // handle dns
+                            // handle dns (reliable + cache + [dns-client])
                         }
                         if (ci.destType == ConnectionType.tcp) {
                             if (isServerConnected == false && isServerFirstTime) {
                                 isServerFirstTime = false;
-                                serverThread = new Thread(tcpServerReceive);
-                                serverThread.Start();
+                                new Thread(tcpServerReceive).Start();
                             }
-                            new Thread(() => sendTcp(bytes, DestinationType.server)).Start();
+                            sendTcp(bytes, DestinationType.server);
                         } else {
                             if (isServerConnected == false && isServerFirstTime) {
                                 isServerFirstTime = false;
-                                serverThread = new Thread(udpServerReceive);
-                                serverThread.Start();
+                                new Thread(udpServerReceive).Start();
                             }
-                            new Thread(() => sendUdp(IPAddress.Parse(serverAddress), bytes, DestinationType.server)).Start();
+                            sendUdp(IPAddress.Parse(serverAddress), bytes, DestinationType.server);
                         }
                     }
-                    tools.print(message);
+                    tools.print($"[tcp client] message received from {ci.sourceAddress}:{ci.sourcePort}, message: {message}");
                 }
                 clientTcp.Close();
             } catch (Exception e) {
@@ -194,14 +241,14 @@ namespace network_project {
                     tools.print("[udp server] waiting for server to connect");
 
                     byte[] bytes = listener.Receive(ref groupEP);
-                    string message = Encoding.ASCII.GetString(bytes, 0, bytes.Length).ToLower().Trim();
+                    string message = Encoding.UTF8.GetString(bytes, 0, bytes.Length).ToLower().Trim();
 
                     if (ci.sourceType == ConnectionType.udp) {
-                        new Thread(() => sendUdp(IPAddress.Parse(ci.sourceAddress), bytes, DestinationType.client)).Start();
+                        sendUdp(IPAddress.Parse(ci.sourceAddress), bytes, DestinationType.client);
                     } else {
-                        new Thread(() => sendTcp(bytes, DestinationType.client)).Start();
+                        sendTcp(bytes, DestinationType.client);
                     }
-                    tools.print($"[udp server] received message from {groupEP.ToString()} :\n {message}\n");
+                    tools.print($"[udp server] message received from {groupEP.ToString()} :\n {message}\n");
 
                 } catch (Exception e) {
                     tools.print($"[udp server] error: {e.Message}");
@@ -237,7 +284,7 @@ namespace network_project {
 
             try {
                 ns.Write(data, 0, data.Length);
-                tools.print($"[tcp proxy] message sent to {serverAddress}:{NetworkManager.proxyPort}");
+                tools.print($"[tcp proxy] message sent to {serverAddress}:{(destType == DestinationType.server ? serverPort : ci.sourcePort)}");
             } catch (Exception e) {
                 tools.print($"[tcp proxy] error: {e.Message}");
             }
