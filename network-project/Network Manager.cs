@@ -76,7 +76,7 @@ namespace network_project {
                 try {
                     connections.Add(new Connection(new ConnectionInfo(int.Parse(sourceInfo[2].Split('-')[0].Trim()), sourceInfo[1].Trim(), sourceInfo[0].Trim() == "udp" ? ConnectionType.udp : ConnectionType.tcp, info[2].Trim() == "udp" ? ConnectionType.udp : ConnectionType.tcp), tools.getTimestamp(DateTime.Now)));
 
-                } catch (Exception e) {
+                } catch {
                     tools.print("   wrong format"); return;
                 }
             }

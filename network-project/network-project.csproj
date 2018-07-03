@@ -12,6 +12,7 @@
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -22,6 +23,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -31,6 +33,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -45,6 +48,39 @@
   <ItemGroup>
     <Compile Include="Connection.cs" />
     <Compile Include="ConnectionInfo.cs" />
+    <Compile Include="DnsHelper\CharacterString.cs" />
+    <Compile Include="DnsHelper\Domain.cs" />
+    <Compile Include="DnsHelper\Header.cs" />
+    <Compile Include="DnsHelper\IMessage.cs" />
+    <Compile Include="DnsHelper\IMessageEntry.cs" />
+    <Compile Include="DnsHelper\IRequest.cs" />
+    <Compile Include="DnsHelper\IResponse.cs" />
+    <Compile Include="DnsHelper\Marshalling\EndianAttribute.cs" />
+    <Compile Include="DnsHelper\Marshalling\Endianness.cs" />
+    <Compile Include="DnsHelper\Marshalling\Struct.cs" />
+    <Compile Include="DnsHelper\OperationCode.cs" />
+    <Compile Include="DnsHelper\Question.cs" />
+    <Compile Include="DnsHelper\RecordClass.cs" />
+    <Compile Include="DnsHelper\RecordType.cs" />
+    <Compile Include="DnsHelper\Request.cs" />
+    <Compile Include="DnsHelper\ResourceRecords\BaseResourceRecord.cs" />
+    <Compile Include="DnsHelper\ResourceRecords\CanonicalNameResourceRecord.cs" />
+    <Compile Include="DnsHelper\ResourceRecords\IPAddressResourceRecord.cs" />
+    <Compile Include="DnsHelper\ResourceRecords\IResourceRecord.cs" />
+    <Compile Include="DnsHelper\ResourceRecords\MailExchangeResourceRecord.cs" />
+    <Compile Include="DnsHelper\ResourceRecords\NameServerResourceRecord.cs" />
+    <Compile Include="DnsHelper\ResourceRecords\PointerResourceRecord.cs" />
+    <Compile Include="DnsHelper\ResourceRecords\ResourceRecord.cs" />
+    <Compile Include="DnsHelper\ResourceRecords\ResourceRecordFactory.cs" />
+    <Compile Include="DnsHelper\ResourceRecords\StartOfAuthorityResourceRecord.cs" />
+    <Compile Include="DnsHelper\ResourceRecords\TextResourceRecord.cs" />
+    <Compile Include="DnsHelper\Response.cs" />
+    <Compile Include="DnsHelper\ResponseCode.cs" />
+    <Compile Include="DnsHelper\Utils\ByteExtensions.cs" />
+    <Compile Include="DnsHelper\Utils\ByteStream.cs" />
+    <Compile Include="DnsHelper\Utils\ObjectStringifier.cs" />
+    <Compile Include="DnsHelper\Utils\TaskExtensions.cs" />
+    <Compile Include="DnsQueryCache.cs" />
     <Compile Include="HttpRequestCache.cs" />
     <Compile Include="Network Manager.cs" />
     <Compile Include="Program.cs" />
