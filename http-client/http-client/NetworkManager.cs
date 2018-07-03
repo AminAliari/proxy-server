@@ -5,7 +5,7 @@ namespace http_client {
     class NetworkManager {
 
         public static bool isRun = true;
-        public static int port = 7878, proxyPort = 7879;
+        public static int port = 80, proxyPort = 7879;
 
         Connection c;
 

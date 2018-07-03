@@ -66,6 +66,7 @@ namespace network_project {
                             }
                             if (isCache) return;
                             serverAddress = info[2];
+
                             serverPort = 80;
                             bytes = Encoding.UTF8.GetBytes(info[3]);
                             cache.Add(new HttpRequestCache(serverAddress, info[3]));
@@ -122,11 +123,20 @@ namespace network_project {
 
                             foreach (string l in lines) {
                                 if (l.StartsWith("Location")) {
+                                    string rawAddress = l.Remove(l.IndexOf("Location: "), 10).Trim();
+                                
+                                    Uri uri = new Uri(rawAddress);
 
-                                    Uri uri = new Uri(l.Remove(l.IndexOf("Location: "), 10).Trim());
+                                    //if (rawAddress.ToLower().Contains("https")) {
+                                    //    serverPort = 443;
+                                    //}
 
                                     oldHostname = hostname;
                                     hostname = uri.AbsolutePath;
+
+                                    if (uri.Host.StartsWith("www.")) {
+                                        serverAddress = serverAddress.Insert(0, "www.");
+                                    }
 
                                     string newData;
 
@@ -135,6 +145,10 @@ namespace network_project {
                                     } else {
                                         newData = lastCache.data.Replace($"{oldHostname}", $"{hostname}");
                                     }
+                                    newData = newData.Remove(newData.IndexOf("Host:"));
+                                    newData = newData.Insert(newData.Length - 1, $"\nHost: {serverAddress}\n\n");
+
+                                    tools.print("->>>>>>[amin]: " + oldHostname + "|" + hostname + "|" + newData);
 
                                     bytes = Encoding.UTF8.GetBytes(newData);
 
