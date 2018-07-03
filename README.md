@@ -1,6 +1,8 @@
-# network-final-project
+# Network course final project
+in this project i built an proxy server to handle diffrent type of request from an udp client to a tcp server connection and vice versa.
+this proxy can perform http requests (with redirects) and dns queries (type A and CNAME)
 
-## example:
+## examples:
 
 ### Http:
 
