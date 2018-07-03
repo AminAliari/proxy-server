@@ -9,7 +9,7 @@ this proxy can perform http requests (with redirects) and dns queries (type A an
 > proxy –s=udp:127.0.0.1:80 –d=tcp
 #### client
 >GET / HTTP/1.1
-><br>Host: aut.ac.ir
+><br>Host: aut.ac.ir<br><br>
 
 ### <br>Dns:
 #### proxy
