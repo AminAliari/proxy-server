@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Net;
 using System.Text;
+using DNS.Protocol;
 using System.Threading;
 using System.Net.Sockets;
 using System.Collections.Generic;
-using DNS.Protocol;
+
 
 namespace network_project {
     class Connection {
@@ -254,7 +255,7 @@ namespace network_project {
                             bytes = request.ToArray();
 
                             UdpClient udp = new UdpClient();
-                            IPEndPoint serverIPEnd = new IPEndPoint(IPAddress.Parse("8.8.8.8"), 53);
+                            IPEndPoint serverIPEnd = new IPEndPoint(IPAddress.Parse(serverAddress), 53);
 
                             await udp.SendAsync(request.ToArray(), request.Size, serverIPEnd);
                             tools.print($"[tcp client] dns query sent to {serverAddress}, target: {target}, type: {type}");
